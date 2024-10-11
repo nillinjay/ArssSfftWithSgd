@@ -19,9 +19,11 @@ def propagation_ARSS_sfft(u_in, phaseh, phaseu, phasec,phasev,phaseh2 ,dtype=tor
     Propagate the input field u_in through the transfer function TF using FFT.
     通过使用FFT传播输入场u_in通过传递函数TF。
     """
+    u = u_in * phaseh2
+    u =ifftshift(torch.fft.ifftn(ifftshift(u), dim=(-2, -1), norm='ortho'))
+    u = u * phasev
 
-
-    u = u_in * phaseu
+    u = u * phaseu
     # u代表了输入场
 
     U1 = fftshift(torch.fft.fftn(fftshift(u), dim=(-2, -1), norm='ortho'))
@@ -44,6 +46,9 @@ def propagation_ARSS_sfft(u_in, phaseh, phaseu, phasec,phasev,phaseh2 ,dtype=tor
 def phase_generation_Arss(u_in, feature_size, wavelength, prop_dist, dtype=torch.complex64,arss_s=1):
     """
     Propagate the input field u_in through the transfer function TF using FFT.
+    feature_size: (dy, dx) size of the feature in the object plane, which is caculated by dv and arss_s
+    prop_dist: z1*totals
+
     """
     field_resolution = u_in.size()
     num_y, num_x = field_resolution[2], field_resolution[3]
@@ -89,9 +94,11 @@ def phase_generation_sfft(u_in,slm_size,wavelength,prop_dist,dtype=torch.complex
     y = m * dy
     x = n * dx
 
+
     X, Y = np.meshgrid(x, y)
     dv=wavelength*z1/num_y/dy
     du=wavelength*z1/num_x/dx
+
     u=m*abs(du)
     v=n*abs(dv)
     U,V=np.meshgrid(u,v)
@@ -118,7 +125,7 @@ def cac_totals(s,dv,slmres):
     totals=s*dv/slmres
     return totals
 
-def clight_generation(u_in, wavelength,s,z1):
+def clight_generation(u_in, wavelength,totals,z2):
     """
     Propagate the input field u_in through the transfer function TF using FFT.
     """
@@ -129,7 +136,7 @@ def clight_generation(u_in, wavelength,s,z1):
     n = np.arange(-num_x / 2, num_x / 2)
 
     # c_light
-    s = s  # 缩放参数
+    s = totals  # 缩放参数
 
     dx0 = 8e-6
     dy0 = 8e-6
@@ -142,7 +149,7 @@ def clight_generation(u_in, wavelength,s,z1):
     # 收敛光
     c_x = 1  # 收敛光收敛角度调整
     c_y = 1
-    c_light = np.exp(-1j * np.pi * (s ** 2 / (wavelength * (z1 * c_x)) * xx0 ** 2 + s ** 2 / (wavelength * (z1 * c_y)) * yy0 ** 2))
+    c_light = np.exp(1j * np.pi * (s ** 2 / (wavelength * (z2 * c_x)) * xx0 ** 2 + s ** 2 / (wavelength * (z2 * c_y)) * yy0 ** 2))
     return c_light
     
 

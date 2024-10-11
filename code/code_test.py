@@ -201,14 +201,16 @@ if __name__ == "__main__":
     # Model Parameter
     cm, mm, um, nm = 1e-2, 1e-3, 1e-6, 1e-9
     image_res = (1080, 1080)
-    z2=-0.3
-    arss_s=5
+    z1=-0.1
+    arss_s=3.2
     wavelength = 532 * nm
     slm_size=   (8 * um, 8 * um)
     slm_pitch = 8 * um
-    totals=cac_totals(arss_s,cac_dv(1080,slm_size,wavelength,z2),8*um)
-    totals=abs(totals)
-    z1=z2*totals
+    dv=abs(cac_dv(1080,slm_size,wavelength,z1))
+    totals=cac_totals(arss_s,dv,8*um)
+    #totals=abs(totals)
+    totals=2.5
+    z2=z1*4
     feature_size = (totals * 8 * um, totals * 8 * um)
  
     image_res = (1080, 1080)
@@ -232,7 +234,7 @@ if __name__ == "__main__":
     target = cv2.resize(target, (1080, 1080))
     target_amp = cv2.cvtColor(target, cv2.COLOR_BGR2GRAY)
 
-    c_light = clight_generation(u_in=target_amp, wavelength=wavelength,s=totals,z1=z1)
+    c_light = clight_generation(u_in=target_amp, wavelength=wavelength,totals=totals,z2=z2)
     target_camp = target_amp * c_light / 255
 
     target_camp = pading(target_camp)
@@ -248,8 +250,8 @@ if __name__ == "__main__":
     # phase
     pad = torch.nn.ZeroPad2d((1080 // 2, 1080 // 2, 1080 // 2, 1080 // 2))
     field = pad(init_phase)
-    phaseh, phaseu, phasec = phase_generation_Arss(u_in=field, feature_size=feature_size, wavelength=wavelength, prop_dist=z1)
-    phasev,phaseh2 = phase_generation_sfft(u_in=field, slm_size=slm_size, wavelength=wavelength, prop_dist=z2)
+    phaseh, phaseu, phasec = phase_generation_Arss(u_in=field, feature_size=feature_size, wavelength=wavelength, prop_dist=z2,arss_s=arss_s)
+    phasev,phaseh2 = phase_generation_sfft(u_in=field, slm_size=slm_size, wavelength=wavelength, prop_dist=z1)
     # training staring
     sgd = SGD(phaseh=phaseh, phaseu=phaseu, phasec=phasec,phasev=phasev,phaseh2=phaseh2 ,feature_size=feature_size, wavelength=wavelength, prop_dist=z1+z2,num_iters=num_iters, propagator=propagator, loss=loss, lr=lr, lr_s=lr_s, s0=s0, device=device)
     final_phase = sgd(target_amp=target_camp, init_phase=init_phase)

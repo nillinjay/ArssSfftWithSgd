@@ -54,7 +54,7 @@ if __name__ == '__main__':
     plt.imshow(np.abs(U), cmap='gray')
     plt.show()
     U_phase = np.angle(U)
-    U_phase=np.exp(1j*U_phase*2*np.pi)
+    U_phase=np.exp(1j*U_phase)
     dv_size=(dv, dv)
     phaseh, phasev,dv = phase_generation_fresnel(img, feature_size, wavelength, -prop_dist)
     U = propration(U_phase, phaseh, phasev,'backward')
