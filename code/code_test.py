@@ -210,7 +210,7 @@ if __name__ == "__main__":
     totals=cac_totals(arss_s,dv,8*um)
     #totals=abs(totals)
     totals=2.5
-    z2=z1*4
+    z2=z1*6
     feature_size = (totals * 8 * um, totals * 8 * um)
  
     image_res = (1080, 1080)

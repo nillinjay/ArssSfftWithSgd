@@ -62,3 +62,10 @@ def phase_generation(u_in, feature_size, wavelength, prop_dist, dtype=torch.comp
 这一段中欧给你的dx是指的最后重建平面的采样间隔，代码中是3*8um;sdx指代的是原平面的采样间隔，这里是slm，即8um
 
 所以可见，这是一个从slm到image的重建过程的相位函数生成，所以我认为i我应该在arss之前先进行一个i-sfft来把slm衍射到虚拟平面上，虚拟平面的采样率dv由采样定律决定，后续arss的feature_size 由dv\*arss_s决定，prop_dist由s\*dv/8um（这个也是totals） 和 z1决定 
+
+
+### *2024-10-12 16:47:54 update by nillin*
+![我跑的代码](<result/beta1 .png>)  
+![师兄的代码](result/image1.png)    
+如图所示，我的结果（上）好了不少，但不知道原理，很奇怪    
+这周先这样下周一在讨论细节

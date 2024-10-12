@@ -36,10 +36,6 @@ def propagation_ARSS_sfft(u_in, phaseh, phaseu, phasec,phasev,phaseh2 ,dtype=tor
     #下面 是我需要修改的
     u_out = u1 * phasec
 
-    u2=u_out*phasev
-
-    u_out=fftshift(torch.fft.fftn(fftshift(u2),dim=(-2,-1),norm='ortho'))
-    u_out= u_out*phaseh2
     return u_out
 
 
