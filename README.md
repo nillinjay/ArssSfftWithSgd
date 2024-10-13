@@ -73,7 +73,6 @@ def phase_generation(u_in, feature_size, wavelength, prop_dist, dtype=torch.comp
 ### *2024-10-13 update by nillin*
 #### *17:17:06 update*
 
-![alt text](result/beta2WighRect.png)
+![alt text](result/beta2WighRect.png)   
     如图所示，我给那个trans相位加上了一个圆形孔洞，但是效果不如不加，有点不解
 
-    
