@@ -201,16 +201,16 @@ if __name__ == "__main__":
     # Model Parameter
     cm, mm, um, nm = 1e-2, 1e-3, 1e-6, 1e-9
     image_res = (1080, 1080)
-    z1=-0.1
-    arss_s=3.2
+    z1=-0.4
+    arss_s=3
     wavelength = 532 * nm
     slm_size=   (8 * um, 8 * um)
     slm_pitch = 8 * um
-    dv=abs(cac_dv(1080,slm_size,wavelength,z1))
-    totals=cac_totals(arss_s,dv,8*um)
+    #dv=abs(cac_dv(1080,slm_size,wavelength,z1))
+    #totals=cac_totals(arss_s,dv,8*um)
     #totals=abs(totals)
-    totals=2.5
-    z2=z1*6
+    totals=3
+    z2=z1*3
     feature_size = (totals * 8 * um, totals * 8 * um)
  
     image_res = (1080, 1080)
