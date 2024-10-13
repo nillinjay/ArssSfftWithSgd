@@ -69,3 +69,11 @@ def phase_generation(u_in, feature_size, wavelength, prop_dist, dtype=torch.comp
 ![师兄的代码](result/image1.png)    
 如图所示，我的结果（上）好了不少，但不知道原理，很奇怪    
 这周先这样下周一在讨论细节
+
+### *2024-10-13 update by nillin*
+#### *17:17:06 update*
+
+![alt text](result/beta2WighRect.png)
+    如图所示，我给那个trans相位加上了一个圆形孔洞，但是效果不如不加，有点不解
+
+    
