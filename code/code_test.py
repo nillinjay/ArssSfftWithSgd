@@ -251,7 +251,8 @@ if __name__ == "__main__":
     pad = torch.nn.ZeroPad2d((1080 // 2, 1080 // 2, 1080 // 2, 1080 // 2))
     field = pad(init_phase)
     phaseh, phaseu, phasec = phase_generation_Arss(u_in=field, feature_size=feature_size, wavelength=wavelength, prop_dist=z2,arss_s=arss_s)
-    phasev,phaseh2 = phase_generation_sfft(u_in=field, slm_size=slm_size, wavelength=wavelength, prop_dist=z1)
+    phasev,phaseh2,rect = phase_generation_sfft(u_in=field, slm_size=slm_size, wavelength=wavelength, prop_dist=z1)
+    phaseh=phaseh*rect
     # training staring
     sgd = SGD(phaseh=phaseh, phaseu=phaseu, phasec=phasec,phasev=phasev,phaseh2=phaseh2 ,feature_size=feature_size, wavelength=wavelength, prop_dist=z1+z2,num_iters=num_iters, propagator=propagator, loss=loss, lr=lr, lr_s=lr_s, s0=s0, device=device)
     final_phase = sgd(target_amp=target_camp, init_phase=init_phase)

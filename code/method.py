@@ -95,6 +95,8 @@ def phase_generation_sfft(u_in,slm_size,wavelength,prop_dist,dtype=torch.complex
     dv=wavelength*z1/num_y/dy
     du=wavelength*z1/num_x/dx
 
+
+
     u=m*abs(du)
     v=n*abs(dv)
     U,V=np.meshgrid(u,v)
@@ -107,7 +109,11 @@ def phase_generation_sfft(u_in,slm_size,wavelength,prop_dist,dtype=torch.complex
     phaseh2=phaseh2.reshape(1,1,phaseh2.shape[0],phaseh2.shape[1])
     phaseh2=torch.tensor(phaseh2,dtype=dtype).to(u_in.device)
 
-    return phasev,phaseh2
+    radius =3.3e-3//2
+    rect=np.sqrt(U**2+V**2)<=radius
+    rect=torch.tensor(rect,dtype=dtype).to(u_in.device)
+
+    return phasev,phaseh2,rect
 
 def cac_dv(N,slm_size,wavelength,prop_dist,dtype=torch.complex64):
     
