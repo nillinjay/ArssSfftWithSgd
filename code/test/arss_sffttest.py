@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
-
+from skimage.metrics import peak_signal_noise_ratio as psnr
+from skimage.metrics import structural_similarity as ssim
 
 def clight_generation(u_in, wavelength,totals,z2):
     """
@@ -27,13 +28,13 @@ def clight_generation(u_in, wavelength,totals,z2):
     # 收敛光
     c_x = 1  # 收敛光收敛角度调整
     c_y = 1
-    c_light = np.exp(1j * np.pi * (s ** 2 / (wavelength * (z2 * c_x)) * xx0 ** 2 + s ** 2 / (wavelength * (z2 * c_y)) * yy0 ** 2))
+    c_light = np.exp(-1j * np.pi * (s ** 2 / (wavelength * (z2 * c_x)) * xx0 ** 2 + s ** 2 / (wavelength * (z2 * c_y)) * yy0 ** 2))
     return c_light
 
 
 def phase_generation_sfft(u_in, slm_size, wavelength, prop_dist, dtype=np.complex64):
     field_resolution = u_in.shape
-    num_y, num_x = field_resolution[2], field_resolution[3]
+    num_y, num_x = field_resolution[1], field_resolution[0]
     dy, dx = slm_size
     z1 = prop_dist
     m = np.arange(-num_y / 2, num_y / 2)
@@ -56,32 +57,58 @@ def phase_generation_sfft(u_in, slm_size, wavelength, prop_dist, dtype=np.comple
     phaseh2 = np.exp(1j * np.pi / wavelength / z1 * (X ** 2 + Y ** 2))
     phaseh2 = np.array(phaseh2, dtype=dtype)
 
-    return phasev, phaseh2
+    radius=3.3e-3/2
+    rect=np.sqrt(U**2+V**2)<=radius
 
-def propagation_ARSS_sfft(u_in, phaseh, phaseu, phasec, phasev, phaseh2, dtype=np.complex64):
+    return phasev, phaseh2,rect
+
+def propagation_ARSS_sfft(u_in, phaseh, phaseu, phasec, phasev, phaseh2, rect,direction='forward',dtype=np.complex64):
     """
     Propagate the input field u_in through the transfer function TF using FFT.
     通过使用FFT传播输入场u_in通过传递函数TF。
     """
    
+    if direction == 'forward':
 
-    u = u_in * phaseu
-    # u代表了输入场
+        u = u_in * phaseu
+        # u代表了输入场
 
-    U1 = np.fft.fftshift(np.fft.fftn(np.fft.fftshift(u), axes=(-2, -1), norm='ortho'))
+        U1 = np.fft.fftshift(np.fft.fftn(np.fft.fftshift(u), axes=(-2, -1), norm='ortho'))
 
-    Trans = np.fft.fftshift(np.fft.fftn(np.fft.fftshift(phaseh), axes=(-2, -1), norm='ortho'))
+        Trans = np.fft.fftshift(np.fft.fftn(np.fft.fftshift(phaseh), axes=(-2, -1), norm='ortho'))
 
-    U2 = Trans * U1
+        U2 = Trans * U1
 
-    u1 = np.fft.ifftshift(np.fft.ifftn(np.fft.ifftshift(U2), axes=(-2, -1), norm='ortho'))
-    # 下面是我需要修改的
-    u_out = u1 * phasec
+        u1 = np.fft.ifftshift(np.fft.ifftn(np.fft.ifftshift(U2), axes=(-2, -1), norm='ortho'))
+        # 下面是我需要修改的
+        u_out = u1 
+        plt.title('virtual')
+        plt.imshow(np.abs(u_out).squeeze(), cmap='gray')
+        plt.show()
 
-    u2 = u_out * phasev
+        u2 = u_out * phasev*rect*phasec
 
-    u_out = np.fft.fftshift(np.fft.fftn(np.fft.fftshift(u2), axes=(-2, -1), norm='ortho'))
-    u_out = u_out * phaseh2
+        u_out = np.fft.fftshift(np.fft.fftn(np.fft.fftshift(u2), axes=(-2, -1), norm='ortho'))
+        u_out = u_out * phaseh2
+
+    else:
+        u=u_in*phaseh2
+        u = np.fft.ifftshift(np.fft.ifftn(np.fft.ifftshift(u), axes=(-2, -1), norm='ortho'))
+        u = u * phasev
+        plt.title('virtual2')
+        plt.imshow(np.abs(u).squeeze(), cmap='gray')
+        plt.show()
+
+        u=u*phaseu
+        U1 = np.fft.fftshift(np.fft.fftn(np.fft.fftshift(u), axes=(-2, -1), norm='ortho'))
+        Trans=np.fft.fftshift(np.fft.fftn(np.fft.fftshift(phaseh), axes=(-2, -1), norm='ortho'))
+        U2=U1*Trans
+        u1 = np.fft.ifftshift(np.fft.ifftn(np.fft.ifftshift(U2), axes=(-2, -1), norm='ortho'))
+        u_out = u1 
+        u_out=u_out*phasec
+
+                                         
+
     return u_out
 
 def phase_generation_Arss(u_in, feature_size, wavelength, prop_dist, dtype=np.complex64, arss_s=1):
@@ -91,7 +118,7 @@ def phase_generation_Arss(u_in, feature_size, wavelength, prop_dist, dtype=np.co
     prop_dist: z1*totals
     """
     field_resolution = u_in.shape
-    num_y, num_x = field_resolution[2], field_resolution[3]
+    num_y, num_x = field_resolution[0], field_resolution[1]
     dy, dx = feature_size
     z1 = prop_dist
     # 这个s也是arss的s，平衡zoom的feature_sizeom
@@ -114,7 +141,7 @@ def phase_generation_Arss(u_in, feature_size, wavelength, prop_dist, dtype=np.co
     phaseu = np.array(phaseu, dtype=dtype)
 
     # phasec
-    phasec = np.exp(1j * wavelength * prop_dist + 1j * np.pi / (wavelength * prop_dist) * (1 - s) * (X ** 2 + Y ** 2)) / (1j)
+    phasec = np.exp(1j * wavelength * prop_dist + 1j * np.pi / (wavelength * prop_dist) * (1 - s) * (X ** 2 + Y ** 2)) / 1j 
     phasec = np.array(phasec, dtype=dtype)
 
     return phaseh, phaseu, phasec
@@ -123,13 +150,45 @@ if __name__ == "__main__":
     # Model Parameter
     cm, mm, um, nm = 1e-2, 1e-3, 1e-6, 1e-9
     image_res = (1080, 1080)
-    z1=0.1
-    arss_s=3.2
+    z1=-0.14
+    arss_s=2.32
     wavelength = 532 * nm
     slm_size=   (8 * um, 8 * um)
     slm_pitch = 8 * um
-
+    virtual_pitch=abs(wavelength*z1/slm_pitch/1080)
+    virtual_size=(virtual_pitch, virtual_pitch)
     #totals=abs(totals)
     totals=2.5
-    z2=z1*4
+    z2=-0.3
     feature_size = (totals * 8 * um, totals * 8 * um)
+
+    image=Image.open('/home/nil/CodeAndArticles/ArssSfftWithSgd/jpg/image4.jpg').convert('L').resize((1080,1080))
+    image = np.array(image)/255
+    plt.title('Target')
+
+
+    c_light = clight_generation(u_in=image, wavelength=wavelength,totals=totals,z2=z2)
+    target_camp = image * c_light 
+    phaseh, phaseu, phasec = phase_generation_Arss(u_in=image, feature_size=virtual_size, wavelength=wavelength, prop_dist=z2,arss_s=1/arss_s)
+    phasev,phaseh2 ,rect= phase_generation_sfft(u_in=image, slm_size=slm_size, wavelength=wavelength, prop_dist=z1)
+    u_out = propagation_ARSS_sfft(target_camp, phaseh, phaseu, phasec, phasev, phaseh2,rect)
+    holo=np.angle(u_out)
+    holo=np.mod(holo,2*np.pi)/2/np.pi
+    plt.title('Holo')
+    plt.imshow(holo.squeeze(), cmap='gray')
+    plt.show()
+
+    init_phase = np.exp(1j*holo*2*np.pi)
+    plt.title('rect')
+    plt.imshow(rect, cmap='gray')
+    plt.show()
+    phaseh, phaseu, phasec = phase_generation_Arss(u_in=u_out, feature_size=feature_size, wavelength=wavelength, prop_dist=-z2,arss_s=arss_s)
+    phasev,phaseh2,rect = phase_generation_sfft(u_in=init_phase, slm_size=slm_size, wavelength=wavelength, prop_dist=-z1)
+    u_out = propagation_ARSS_sfft(u_out, phaseh, phaseu, phasec, phasev, phaseh2,rect,direction='backward')
+    u_out=np.abs(u_out)
+    plt.title('Reconstructed')
+    plt.imshow(u_out, cmap='gray')
+    plt.show()
+    SSIM = ssim(u_out, image, data_range=u_out.max() - image.min())
+    print(abs(z1))
+    print(SSIM)

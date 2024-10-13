@@ -86,7 +86,7 @@ def roll_torch(tensor, shift, axis):
 
 
 class SGD(nn.Module):
-    def __init__(self, phaseh, phaseu, phasec,phasev,phaseh2, feature_size, wavelength, prop_dist, num_iters, propagator=None,
+    def __init__(self, phaseh, phaseu, phasec,phasev,phaseh2, rect,feature_size, wavelength, prop_dist, num_iters, propagator=None,
                  loss=nn.MSELoss(), lr=0.1, lr_s=0.003, s0=1.0, device=torch.device('cuda')):
         """
         Initialize the SGD optimization model.
@@ -108,19 +108,20 @@ class SGD(nn.Module):
         self.init_scale = s0
         self.dev = device
         self.loss = loss.to(device)
+        self.rect=rect
 
     def forward(self, target_amp, init_phase=None):
         """
         Perform forward pass of SGD optimization.
         """
-        final_phase = stochastic_gradient_descent(init_phase, target_amp, self.phaseh, self.phaseu, self.phasec,self.phasev,self.phaseh2, self.num_iters,
+        final_phase,virtue_amp = stochastic_gradient_descent(init_phase, target_amp, self.phaseh, self.phaseu, self.phasec,self.phasev,self.phaseh2, self.rect,self.num_iters,
                                                   self.feature_size, self.wavelength, self.prop_dist, propagator=self.prop,
                                                   loss=self.loss, lr=self.lr, lr_s=self.lr_s,
                                                   s0=self.init_scale)
-        return final_phase
+        return final_phase,virtue_amp
 
 
-def stochastic_gradient_descent(init_phase, target_amp, phaseh, phaseu, phasec,phasev,phaseh2, num_iters, feature_size, wavelength, prop_dist, propagator=None,
+def stochastic_gradient_descent(init_phase, target_amp, phaseh, phaseu, phasec,phasev,phaseh2,rect, num_iters, feature_size, wavelength, prop_dist, propagator=None,
                                 loss=nn.MSELoss(), lr=0.01, lr_s=0.003, s0=1, dtype=torch.float32):
     """
     Perform stochastic gradient descent to optimize the phase.
@@ -141,7 +142,7 @@ def stochastic_gradient_descent(init_phase, target_amp, phaseh, phaseu, phasec,p
         pad = torch.nn.ZeroPad2d((1080 // 2, 1080 // 2, 1080 // 2, 1080 // 2))
         slm_field_pad = pad(slm_field)
 
-        recon_field = propagator(u_in=slm_field_pad, phaseh=phaseh, phaseu=phaseu, phasec=phasec,phasev=phasev,phaseh2=phaseh2)
+        recon_field ,virturl_plane= propagator(u_in=slm_field_pad, phaseh=phaseh, phaseu=phaseu, phasec=phasec,phasev=phasev,phaseh2=phaseh2,rect=rect)
 
         # recon_amp = recon_field.abs()
 
@@ -161,8 +162,10 @@ def stochastic_gradient_descent(init_phase, target_amp, phaseh, phaseu, phasec,p
         recon_amp = recon_field.abs()
         tar_real, tar_imag = polar_to_rect(target_amp.abs(), target_amp.angle())
         tar_amp = target_amp.abs()
+        virturl_amp=virturl_plane.abs()
 
         lossValue = loss(s * recon_real, tar_real) + loss(s * recon_imag, tar_imag) + 2 * loss(s * recon_amp, tar_amp)
+        #lossValue =loss(s*recon_amp,tar_amp)
         print(s, lossValue)
         lossValue.backward()
         optimizer.step()
@@ -194,15 +197,15 @@ def stochastic_gradient_descent(init_phase, target_amp, phaseh, phaseu, phasec,p
                 plt.imshow(recon, cmap='gray')
                 plt.show()
 
-    return slm_phase
+    return slm_phase,virturl_amp
 
 
 if __name__ == "__main__":
     # Model Parameter
     cm, mm, um, nm = 1e-2, 1e-3, 1e-6, 1e-9
     image_res = (1080, 1080)
-    z1=-0.2
-    arss_s=3.2
+    z1=-0.14
+    arss_s=2.32
     wavelength = 532 * nm
     slm_size=   (8 * um, 8 * um)
     slm_pitch = 8 * um
@@ -210,7 +213,7 @@ if __name__ == "__main__":
     fft_s=dv/8/um
     #totals=abs(totals)
     totals=2.5
-    z2=z1*4
+    z2=-0.5
     feature_size = (totals * 8 * um, totals * 8 * um)
  
     image_res = (1080, 1080)
@@ -224,13 +227,13 @@ if __name__ == "__main__":
     device = torch.device('cuda')
     loss = nn.MSELoss().to(device)
     propagator = propagation_ARSS_sfft
-    num_iters = 2001
+    num_iters = 501
     lr = 0.04
     lr_s = 0.01
     s0 = 1.0
 
     # Image Processing
-    target = cv2.imread('../jpg/image2.jpg')
+    target = cv2.imread('../jpg/image4.jpg')
     target = cv2.resize(target, (1080, 1080))
     target_amp = cv2.cvtColor(target, cv2.COLOR_BGR2GRAY)
 
@@ -252,10 +255,10 @@ if __name__ == "__main__":
     field = pad(init_phase)
     phaseh, phaseu, phasec = phase_generation_Arss(u_in=field, feature_size=feature_size, wavelength=wavelength, prop_dist=z2,arss_s=arss_s)
     phasev,phaseh2 ,rect= phase_generation_sfft(u_in=field, slm_size=slm_size, wavelength=wavelength, prop_dist=z1)
-    phaseh=phaseh*rect
+
     # training staring
-    sgd = SGD(phaseh=phaseh, phaseu=phaseu, phasec=phasec,phasev=phasev,phaseh2=phaseh2 ,feature_size=feature_size, wavelength=wavelength, prop_dist=z1+z2,num_iters=num_iters, propagator=propagator, loss=loss, lr=lr, lr_s=lr_s, s0=s0, device=device)
-    final_phase = sgd(target_amp=target_camp, init_phase=init_phase)
+    sgd = SGD(phaseh=phaseh, phaseu=phaseu, phasec=phasec,phasev=phasev,phaseh2=phaseh2 ,rect=rect,feature_size=feature_size, wavelength=wavelength, prop_dist=z1+z2,num_iters=num_iters, propagator=propagator, loss=loss, lr=lr, lr_s=lr_s, s0=s0, device=device)
+    final_phase,virture_amp = sgd(target_amp=target_camp, init_phase=init_phase)
 
     # Hologram Preservation
     final_phase = np.array(final_phase.data.cpu()[0])[0]
@@ -265,4 +268,7 @@ if __name__ == "__main__":
         os.makedirs(output_dir)
     output_path = os.path.join(output_dir, 'Circle_HOLO_43.png')
     plt.imsave(output_path, final_phase, cmap='gray')
+    plt.title('virtual')
+    plt.imshow(virture_amp.squeeze().cpu().detach().numpy(), cmap='gray')
+    plt.show()
 

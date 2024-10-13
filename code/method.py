@@ -14,7 +14,7 @@ import os
 import time
 from fullarss_with_comAmp import fftshift,ifftshift
 
-def propagation_ARSS_sfft(u_in, phaseh, phaseu, phasec,phasev,phaseh2 ,dtype=torch.complex64):
+def propagation_ARSS_sfft(u_in, phaseh, phaseu, phasec,phasev,phaseh2 ,rect,dtype=torch.complex64):
     """
     Propagate the input field u_in through the transfer function TF using FFT.
     通过使用FFT传播输入场u_in通过传递函数TF。
@@ -22,8 +22,9 @@ def propagation_ARSS_sfft(u_in, phaseh, phaseu, phasec,phasev,phaseh2 ,dtype=tor
     u = u_in * phaseh2
     u =ifftshift(torch.fft.ifftn(ifftshift(u), dim=(-2, -1), norm='ortho'))
     u = u * phasev
+    u_v=u*rect
 
-    u = u * phaseu
+    u = u_v * phaseu
     # u代表了输入场
 
     U1 = fftshift(torch.fft.fftn(fftshift(u), dim=(-2, -1), norm='ortho'))
@@ -36,7 +37,7 @@ def propagation_ARSS_sfft(u_in, phaseh, phaseu, phasec,phasev,phaseh2 ,dtype=tor
     #下面 是我需要修改的
     u_out = u1 * phasec
 
-    return u_out
+    return u_out,u_v
 
 
 def phase_generation_Arss(u_in, feature_size, wavelength, prop_dist, dtype=torch.complex64,arss_s=1):
@@ -107,7 +108,7 @@ def phase_generation_sfft(u_in,slm_size,wavelength,prop_dist,dtype=torch.complex
     phaseh2=phaseh2.reshape(1,1,phaseh2.shape[0],phaseh2.shape[1])
     phaseh2=torch.tensor(phaseh2,dtype=dtype).to(u_in.device)
 
-    radius=6.6e-3/2
+    radius=3.3e-3/2
     rect=np.sqrt(U**2+V**2)<radius
     rect=rect.reshape(1,1,rect.shape[0],rect.shape[1])
     rect=torch.tensor(rect,dtype=dtype).to(u_in.device) 
