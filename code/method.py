@@ -107,7 +107,12 @@ def phase_generation_sfft(u_in,slm_size,wavelength,prop_dist,dtype=torch.complex
     phaseh2=phaseh2.reshape(1,1,phaseh2.shape[0],phaseh2.shape[1])
     phaseh2=torch.tensor(phaseh2,dtype=dtype).to(u_in.device)
 
-    return phasev,phaseh2
+    radius=6.6e-3/2
+    rect=np.sqrt(U**2+V**2)<radius
+    rect=rect.reshape(1,1,rect.shape[0],rect.shape[1])
+    rect=torch.tensor(rect,dtype=dtype).to(u_in.device) 
+
+    return phasev,phaseh2,rect
 
 def cac_dv(N,slm_size,wavelength,prop_dist,dtype=torch.complex64):
     
@@ -163,7 +168,7 @@ if __name__=="__main__":
     z2=0.1
     s=10
     phaseh, phaseu,phasec = phase_generation_Arss(u_in=field, feature_size=feature_size, wavelength=wavelength, prop_dist=z1)
-    phasev,phaseh2=phase_generation_sfft(u_in=field,slm_size=slm_size,wavelength=wavelength,prop_dist=z2)
+    phasev,phaseh2,rect=phase_generation_sfft(u_in=field,slm_size=slm_size,wavelength=wavelength,prop_dist=z2)
     u_out = propagation_ARSS_sfft(field, phaseh, phaseu,phasec,phasev,phaseh2)
     dv=cac_dv(1080,slm_size,wavelength,z2)
     totals=cac_totals(s,dv,8*um)
