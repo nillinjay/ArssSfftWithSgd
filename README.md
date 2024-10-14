@@ -65,7 +65,7 @@ def phase_generation(u_in, feature_size, wavelength, prop_dist, dtype=torch.comp
 
 ### *2024-10-12 16:47:54 update by nillin*
 
-![我跑的代码](result/beta1 .png)
+![我跑的代码](result/beta1.png)
 ![师兄的代码](result/image1.png)
 如图所示，我的结果（上）好了不少，但不知道原理，很奇怪
 这周先这样下周一在讨论细节
