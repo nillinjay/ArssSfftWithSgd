@@ -85,4 +85,10 @@ def phase_generation(u_in, feature_size, wavelength, prop_dist, dtype=torch.comp
 ![alt text](result/beta3withjustamp.png)
 ![alt text](result/beta3withnosgd.png)
 
-从上倒下依次是约束复振幅，约束振幅，两次衍射，可以明显看到我们方法的优势所在
+从上倒下依次是约束复振幅，约束振幅，两次衍射，可以明显看到我们方法的优势所在,我们的方法对于不符合最优衍射距离的情况有着很大的优势，这可能对长距离投影有帮助
+
+
+### *2024-10-14 update by nillin*
+#### *09:14:19 update*
+后续的任务，把双相位编码全息图代替复振幅看衍射结果。
+
