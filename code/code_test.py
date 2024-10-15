@@ -163,9 +163,13 @@ def stochastic_gradient_descent(init_phase, target_amp, phaseh, phaseu, phasec,p
         tar_real, tar_imag = polar_to_rect(target_amp.abs(), target_amp.angle())
         tar_amp = target_amp.abs()
         virturl_amp=virturl_plane.abs()
-
-        lossValue = loss(s * recon_real, tar_real) + loss(s * recon_imag, tar_imag) + 2 * loss(s * recon_amp, tar_amp)
-        #lossValue =loss(s*recon_amp,tar_amp)
+        if k <=1000:
+            
+            lossValue = loss(s * recon_real, tar_real) + loss(s * recon_imag, tar_imag) + 2 * loss(s * recon_amp, tar_amp)
+            #lossValue =loss(s*recon_amp,tar_amp)
+        else :
+            lossValue =loss(s*recon_amp,tar_amp)
+            #lossValue = loss(s * recon_real, tar_real) + loss(s * recon_imag, tar_imag) + 2 * loss(s * recon_amp, tar_amp)
         print(s, lossValue)
         lossValue.backward()
         optimizer.step()
@@ -204,8 +208,8 @@ if __name__ == "__main__":
     # Model Parameter
     cm, mm, um, nm = 1e-2, 1e-3, 1e-6, 1e-9
     image_res = (1080, 1080)
-    z1=-0.14
-    arss_s=2.32
+    z1=-0.1
+    
     wavelength = 532 * nm
     slm_size=   (8 * um, 8 * um)
     slm_pitch = 8 * um
@@ -213,9 +217,10 @@ if __name__ == "__main__":
     fft_s=dv/8/um
     #totals=abs(totals)
     totals=2.5
-    z2=-0.5
+    z2=-0.45
     feature_size = (totals * 8 * um, totals * 8 * um)
- 
+    arss_s=totals*8*um/dv
+    
     image_res = (1080, 1080)
     k = 2 * np.pi / wavelength
     fill_rate = 0.87
@@ -227,7 +232,7 @@ if __name__ == "__main__":
     device = torch.device('cuda')
     loss = nn.MSELoss().to(device)
     propagator = propagation_ARSS_sfft
-    num_iters = 501
+    num_iters = 1501
     lr = 0.04
     lr_s = 0.01
     s0 = 1.0
