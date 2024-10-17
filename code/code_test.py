@@ -167,9 +167,11 @@ def stochastic_gradient_descent(init_phase, target_amp, phaseh, phaseu, phasec,p
             
             lossValue = loss(s * recon_real, tar_real) + loss(s * recon_imag, tar_imag) + 2 * loss(s * recon_amp, tar_amp)
             #lossValue =loss(s*recon_amp,tar_amp)
-        else :
+        elif 1000<k <=1500:
             lossValue =loss(s*recon_amp,tar_amp)
             #lossValue = loss(s * recon_real, tar_real) + loss(s * recon_imag, tar_imag) + 2 * loss(s * recon_amp, tar_amp)
+        else :
+            lossValue = loss(s * recon_real, tar_real) + loss(s * recon_imag, tar_imag) + 2 * loss(s * recon_amp, tar_amp)
         print(s, lossValue)
         lossValue.backward()
         optimizer.step()
@@ -208,7 +210,7 @@ if __name__ == "__main__":
     # Model Parameter
     cm, mm, um, nm = 1e-2, 1e-3, 1e-6, 1e-9
     image_res = (1080, 1080)
-    z1=-0.1
+    z1=-0.14
     
     wavelength = 532 * nm
     slm_size=   (8 * um, 8 * um)
@@ -217,7 +219,7 @@ if __name__ == "__main__":
     fft_s=dv/8/um
     #totals=abs(totals)
     totals=2.5
-    z2=-0.45
+    z2=-0.5
     feature_size = (totals * 8 * um, totals * 8 * um)
     arss_s=totals*8*um/dv
     
@@ -238,7 +240,7 @@ if __name__ == "__main__":
     s0 = 1.0
 
     # Image Processing
-    target = cv2.imread('../jpg/image4.jpg')
+    target = cv2.imread('../jpg/image3.jpg')
     target = cv2.resize(target, (1080, 1080))
     target_amp = cv2.cvtColor(target, cv2.COLOR_BGR2GRAY)
 

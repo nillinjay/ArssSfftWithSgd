@@ -4,7 +4,7 @@
 
 > *date：2024.10.10*
 
-    说明：这是基于周杰的一个成像质量优化    
+    说明：这是基于周杰的一个成像质量优化
     code里的method和code_test为主要程序
 
 目前遇到的问题：
@@ -66,10 +66,10 @@ def phase_generation(u_in, feature_size, wavelength, prop_dist, dtype=torch.comp
 
 ### *2024-10-12 16:47:54 update by nillin*
 
-![我跑的代码](result/beta1.png)    
-![师兄的代码](result/image1.png)    
-如图所示，我的结果（上）好了不少，但不知道原理，很奇怪    
-这周先这样下周一在讨论细节    
+![我跑的代码](result/beta1.png)
+![师兄的代码](result/image1.png)
+如图所示，我的结果（上）好了不少，但不知道原理，很奇怪
+这周先这样下周一在讨论细节
 
 ### *2024-10-13 update by nillin*
 
@@ -88,8 +88,13 @@ def phase_generation(u_in, feature_size, wavelength, prop_dist, dtype=torch.comp
 
 从上倒下依次是约束复振幅，约束振幅，两次衍射，可以明显看到我们方法的优势所在,我们的方法对于不符合最优衍射距离的情况有着很大的优势，这可能对长距离投影有帮助
 
-
 ### *2024-10-14 update by nillin*
+
 #### *09:14:19 update*
+
 后续的任务，把双相位编码全息图代替复振幅看衍射结果。
 
+### *2024-10-17 update by nillin*
+#### *11:29:42 update*
+说明，为arss_sffttest 新增了双相位编码
+后续任务，寻找优化拐点

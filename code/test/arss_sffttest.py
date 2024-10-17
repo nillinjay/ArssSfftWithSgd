@@ -94,7 +94,7 @@ def propagation_ARSS_sfft(u_in, phaseh, phaseu, phasec, phasev, phaseh2, rect,di
     else:
         u=u_in*phaseh2
         u = np.fft.ifftshift(np.fft.ifftn(np.fft.ifftshift(u), axes=(-2, -1), norm='ortho'))
-        u = u * phasev
+        u = u * phasev*rect
         plt.title('virtual2')
         plt.imshow(np.abs(u).squeeze(), cmap='gray')
         plt.show()
@@ -145,6 +145,37 @@ def phase_generation_Arss(u_in, feature_size, wavelength, prop_dist, dtype=np.co
     phasec = np.array(phasec, dtype=dtype)
 
     return phaseh, phaseu, phasec
+def double_phase(Uf):
+    # Uf shape: [batch_size, channels, height (N), width (M)]
+    N, M = Uf.shape[-2], Uf.shape[-1]  # Extract height and width
+
+    # Generate coordinate grids
+    x = np.arange(M).reshape(1, M).repeat(N, axis=0)
+    y = np.arange(N).reshape(N, 1).repeat(M, axis=1)
+
+    # Create Mask1 using cosine squared
+    Mask1 = np.cos(np.pi * (x + y) / 2)**2
+    Mask2 = 1 - Mask1  # Inverse of Mask1
+
+    # Remove batch and channel dimensions for computation
+    #Uf = Uf.squeeze(0).squeeze(0)  # Now Uf has shape [N, M]
+
+    # Compute amplitude and phase
+    Uf_P = np.angle(Uf)
+    Uf_A = np.abs(Uf)
+    w = Uf_A / np.max(Uf_A)
+
+    # Compute theta1 and theta2
+    theta1 = Uf_P + np.arccos(w)
+    theta2 = Uf_P - np.arccos(w)
+
+    # Combine phases using the masks
+    theta = theta1 * Mask1 + theta2 * Mask2
+
+    # Add batch and channel dimensions back
+   # theta = theta[np.newaxis, np.newaxis, :, :]  # Shape: [1, 1, N, M]
+
+    return theta
 
 if __name__ == "__main__":
     # Model Parameter
@@ -159,10 +190,10 @@ if __name__ == "__main__":
     virtual_size=(virtual_pitch, virtual_pitch)
     #totals=abs(totals)
     totals=2.5
-    z2=-0.3
+    z2=-0.5
     feature_size = (totals * 8 * um, totals * 8 * um)
 
-    image=Image.open('/home/nil/CodeAndArticles/ArssSfftWithSgd/jpg/image4.jpg').convert('L').resize((1080,1080))
+    image=Image.open('/home/nil/CodeAndArticles/ArssSfftWithSgd/jpg/image3.jpg').convert('L').resize((1080,1080))
     image = np.array(image)/255
     plt.title('Target')
 
@@ -172,23 +203,25 @@ if __name__ == "__main__":
     phaseh, phaseu, phasec = phase_generation_Arss(u_in=image, feature_size=virtual_size, wavelength=wavelength, prop_dist=z2,arss_s=1/arss_s)
     phasev,phaseh2 ,rect= phase_generation_sfft(u_in=image, slm_size=slm_size, wavelength=wavelength, prop_dist=z1)
     u_out = propagation_ARSS_sfft(target_camp, phaseh, phaseu, phasec, phasev, phaseh2,rect)
-    holo=np.angle(u_out)
-    holo=np.mod(holo,2*np.pi)/2/np.pi
+    holo=double_phase(u_out)
+    #holo=np.mod(holo,2*np.pi)/2/np.pi
     plt.title('Holo')
     plt.imshow(holo.squeeze(), cmap='gray')
     plt.show()
 
-    init_phase = np.exp(1j*holo*2*np.pi)
+
     plt.title('rect')
     plt.imshow(rect, cmap='gray')
     plt.show()
     phaseh, phaseu, phasec = phase_generation_Arss(u_in=u_out, feature_size=feature_size, wavelength=wavelength, prop_dist=-z2,arss_s=arss_s)
-    phasev,phaseh2,rect = phase_generation_sfft(u_in=init_phase, slm_size=slm_size, wavelength=wavelength, prop_dist=-z1)
-    u_out = propagation_ARSS_sfft(u_out, phaseh, phaseu, phasec, phasev, phaseh2,rect,direction='backward')
+    phasev,phaseh2,rect = phase_generation_sfft(u_in=u_out, slm_size=slm_size, wavelength=wavelength, prop_dist=-z1)
+    u_out = propagation_ARSS_sfft(np.exp(1j*holo), phaseh, phaseu, phasec, phasev, phaseh2,rect,direction='backward')
     u_out=np.abs(u_out)
     plt.title('Reconstructed')
     plt.imshow(u_out, cmap='gray')
     plt.show()
     SSIM = ssim(u_out, image, data_range=u_out.max() - image.min())
+    PSNR = psnr(u_out, image,data_range=u_out.max() - image.min())
     print(abs(z1))
     print(SSIM)
+    print(PSNR)
